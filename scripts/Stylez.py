@@ -462,7 +462,7 @@ def add_tab():
         remove_favourite_btn.click(fn=removeFavourite, inputs=[favourite_temp])
         stylezquicksave_add.click(fn=None, _js="addQuicksave")
         stylezquicksave_clear.click(fn=None, _js="clearquicklist")
-    return [(ui, "stylez_menutab", "stylez_menutab")]
+    return [(ui, "Stylez", "stylez_menutab")]
 
 
 script_callbacks.on_ui_tabs(add_tab)
