@@ -22,7 +22,7 @@ card_size_value = 0
 card_size_min = 0
 card_size_max = 0
 favourites = []
-hideoldstyles = False
+hideoldstyles = True
 config_json = os.path.join(extension_path, "scripts", "config.json")
 
 
