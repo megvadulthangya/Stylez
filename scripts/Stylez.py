@@ -83,6 +83,17 @@ def replace_illegal_filename_characters(input_filename: str):
     Replace illegal characters with full-width variant
     if leading space or dot then add underscore prefix
     if input is blank then return underscore
+    Table
+    "           ->  uff02 full-width quotation mark         ＂
+    *           ->  uff0a full-width asterisk               ＊
+    /           ->  uff0f full-width solidus                ／
+    :           ->  uff1a full-width colon                  ：
+    <           ->  uff1c full-width less-than sign         ＜
+    >           ->  uff1e full-width greater-than sign      ＞
+    ?           ->  uff1f full-width question mark          ？
+    \           ->  uff3c full-width reverse solidus        ＼
+    |           ->  uffe8 half-width forms light vertical   ￨
+    \t\n\v\f\r  ->  u0020 space
     """
     if input_filename:
         output_filename = input_filename.translate(character_translation_table)
@@ -165,6 +176,7 @@ def generate_html_code():
                     categories_list.append(subfolder_name)
                 if subfolder_name.lower() not in [c.lower() for c in save_categories_list]:
                     save_categories_list.append(subfolder_name)
+
         for root, _, files in os.walk(styles_dir):
             for filename in files:
                 if filename.endswith(".json"):
@@ -334,9 +346,11 @@ def add_tab():
     generate_styles_and_tags = generate_html_code()
     nopreview = os.path.join(extension_path, "nopreview.jpg")
     global hideoldstyles
+
     with gr.Blocks(analytics_enabled=False) as ui:
         with gr.Tabs(elem_id="Stylez"):
             gr.HTML("""<div id="stylezPreviewBoxid" class="stylezPreviewBox"><p id="stylezPreviewPositive">test</p><p id="stylezPreviewNegative">test</p></div>""")
+
             with gr.TabItem(label="Styles", elem_id="styles_libary"):
                 with gr.Column():
                     with gr.Column():
@@ -396,6 +410,7 @@ def add_tab():
                                     with gr.Column():
                                         style_max_length = gr.Slider(label="Maximum Number Of Tokens:", minimum=1, maximum=160, value=80, step=1)
                                         style_gen_repitition_penalty = gr.Slider(label="Repitition Penalty:", minimum=0.1, maximum=2, value=1.2, step=0.1)
+
                     with gr.Row(elem_id="stylesPreviewRow"):
                         gr.Checkbox(value=True, label="Apply/Remove Prompt", elem_id="styles_apply_prompt", elem_classes="styles_checkbox checkbox")
                         gr.Checkbox(value=True, label="Apply/Remove Negative", elem_id="styles_apply_neg", elem_classes="styles_checkbox checkbox")
@@ -404,10 +419,12 @@ def add_tab():
                         setattr(oldstylesCB, "do_not_save_to_config", True)
                         card_size_slider = gr.Slider(value=card_size_value, minimum=card_size_min, maximum=card_size_max, label="Size:", elem_id="card_thumb_size")
                         setattr(card_size_slider, "do_not_save_to_config", True)
+
                     with gr.Row(elem_id="stylesPreviewRow"):
                         favourite_temp = gr.Textbox(elem_id="favouriteTempTxt", interactive=False, label="Positive:", lines=2, visible=False)
                         add_favourite_btn = gr.Button(elem_id="stylezAddFavourite", visible=False)
                         remove_favourite_btn = gr.Button(elem_id="stylezRemoveFavourite", visible=False)
+
             with gr.TabItem(label="Style Editor", elem_id="styles_editor"):
                 with gr.Row():
                     with gr.Column():
@@ -422,9 +439,11 @@ def add_tab():
                             style_delete_btn = gr.Button(delete_style, elem_classes="tool", elem_id="style_delete_btn")
                         thumbnailbox = gr.Image(value=None, label="Thumbnail (Please use 1:1 images):", elem_id="style_thumbnailbox", elem_classes="image", interactive=True, type='pil')
                         style_img_url_txt = gr.Textbox(label=None, lines=1, placeholder="Invisible textbox", elem_id="style_img_url_txt", visible=False)
+
                 with gr.Row():
                     style_grab_current_btn = gr.Button("Grab Prompts", elem_id="style_grab_current_btn")
                     style_lastgen_btn = gr.Button("Grab Last Generated Image", elem_id="style_lastgen_btn")
+
                 with gr.Row():
                     with gr.Column():
                         style_filename_txt = gr.Textbox(label="Filename Name:", lines=1, placeholder="Filename", elem_id="style_filename_txt")
@@ -439,29 +458,37 @@ def add_tab():
         periodcivit.change(fn=None, _js="refreshfetchCivitai", inputs=[nsfwlvl, sortcivit, periodcivit])
         sortcivit.change(fn=None, _js="refreshfetchCivitai", inputs=[nsfwlvl, sortcivit, periodcivit])
         nsfwlvl.change(fn=None, _js="refreshfetchCivitai", inputs=[nsfwlvl, sortcivit, periodcivit])
+
         style_gengrab_btn.click(fn=None, _js="stylesgrabprompt", outputs=[style_geninput_txt])
         style_gensend_btn.click(fn=None, _js='sendToPromtbox', inputs=[style_genoutput_txt])
         style_gen_btn.click(fn=generate_style, inputs=[style_geninput_txt, style_gen_temp, style_gen_top_k, style_max_length, style_gen_repitition_penalty, style_genusecomma_btn], outputs=[style_genoutput_txt])
+
         oldstylesCB.change(fn=oldstyles, inputs=[oldstylesCB], _js="hideOldStyles")
         refresh_button.click(fn=refresh_styles, inputs=[category_dropdown], outputs=[Styles_html, category_dropdown, category_dropdown, style_savefolder_txt])
         card_size_slider.release(fn=save_card_def, inputs=[card_size_slider])
         card_size_slider.change(fn=None, inputs=[card_size_slider], _js="cardSizeChange")
         category_dropdown.change(fn=None, _js="filterSearch", inputs=[category_dropdown, Style_Search])
         Style_Search.change(fn=None, _js="filterSearch", inputs=[category_dropdown, Style_Search])
+
         style_img_url_txt.change(fn=img_to_thumbnail, inputs=[style_img_url_txt], outputs=[thumbnailbox])
         style_grab_current_btn.click(fn=None, _js='grabCurrentSettings')
         style_lastgen_btn.click(fn=None, _js='grabLastGeneratedimage')
+
         style_savefolder_refrsh_btn.click(fn=refresh_styles, inputs=[category_dropdown], outputs=[Styles_html, category_dropdown, category_dropdown, style_savefolder_txt])
         style_save_btn.click(fn=save_style, inputs=[style_title_txt, thumbnailbox, style_description_txt, style_prompt_txt, style_negative_txt, style_filename_txt, style_savefolder_temp], outputs=[style_filname_check])
         style_filename_txt.change(fn=filename_check, inputs=[style_savefolder_temp, style_filename_txt], outputs=[style_filname_check])
         style_savefolder_txt.change(fn=tempfolderbox, inputs=[style_savefolder_txt], outputs=[style_savefolder_temp])
         style_savefolder_temp.change(fn=filename_check, inputs=[style_savefolder_temp, style_filename_txt], outputs=[style_filname_check])
+
         style_clear_btn.click(fn=clear_style, outputs=[style_title_txt, style_img_url_txt, thumbnailbox, style_description_txt, style_prompt_txt, style_negative_txt, style_filename_txt])
         style_delete_btn.click(fn=deletestyle, inputs=[style_savefolder_temp, style_filename_txt])
+
         add_favourite_btn.click(fn=addToFavourite, inputs=[favourite_temp])
         remove_favourite_btn.click(fn=removeFavourite, inputs=[favourite_temp])
+
         stylezquicksave_add.click(fn=None, _js="addQuicksave")
         stylezquicksave_clear.click(fn=None, _js="clearquicklist")
+
     return [(ui, "Stylez", "stylez_menutab")]
 
 
