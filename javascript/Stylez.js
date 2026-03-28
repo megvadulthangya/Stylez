@@ -9,29 +9,29 @@ let promptPos = '';
 function setupStylez() {
     const app = gradioApp();
 
-    // create new button (t2i)
+    // create new button (txt2img)
     const t2i_StyleBtn = document.createElement("button");
     t2i_StyleBtn.setAttribute("class", "lg secondary gradio-button tool svelte-cmf5ev");
     t2i_StyleBtn.setAttribute("id", "t2i_stylez_btn");
     t2i_StyleBtn.setAttribute("type", "button");
     t2i_StyleBtn.setAttribute("onClick", "showHideStylez()");
+    t2i_StyleBtn.addEventListener("click", showHideStylez);
     t2i_StyleBtn.innerText = `🎨`;
 
-    // add new button
     const txt2img_tools = app.getElementById("txt2img_clear_prompt");
     if (txt2img_tools && txt2img_tools.parentNode) {
         txt2img_tools.parentNode.appendChild(t2i_StyleBtn);
     }
 
-    // create new button (i2i)
+    // create new button (img2img)
     const i2i_StyleBtn = document.createElement("button");
     i2i_StyleBtn.setAttribute("class", "lg secondary gradio-button tool svelte-cmf5ev");
     i2i_StyleBtn.setAttribute("id", "i2i_stylez_btn");
     i2i_StyleBtn.setAttribute("type", "button");
     i2i_StyleBtn.setAttribute("onClick", "showHideStylez()");
+    i2i_StyleBtn.addEventListener("click", showHideStylez);
     i2i_StyleBtn.innerText = `🎨`;
 
-    // add new button
     const img2img_tools = app.getElementById("img2img_clear_prompt");
     if (img2img_tools && img2img_tools.parentNode) {
         img2img_tools.parentNode.appendChild(i2i_StyleBtn);
@@ -47,23 +47,19 @@ function setupStylez() {
         }
     }
 
-    // IMPORTANT:
-    // Do NOT move the #Stylez container into the main tabs container.
-    // That caused the panel to render as an empty/duplicated tab.
-    // We only hide the visible tab button here.
-
-    hideStylezTabButton();
-
     const stylezContainer = app.querySelector("#Stylez");
     console.log(stylezContainer);
 
-    // Keep the old UI hidden tab hidden, but still usable from the custom button.
-    // If the root container is displayed by JS, it behaves like an overlay/popup.
-    if (stylezContainer) {
-        stylezContainer.style.display = "none";
+    // IMPORTANT:
+    // Keep the original behavior: move the Stylez container under the main tabs container.
+    // The visible tab button is hidden separately.
+    const tabs = app.getElementById("tabs");
+    if (stylezContainer && tabs && stylezContainer.parentNode !== tabs) {
+        tabs.appendChild(stylezContainer);
     }
 
-    // hide old styles toggle
+    hideStylezTabButton();
+
     const oldStylesBox = app.querySelector('#hide_default_styles');
     if (oldStylesBox) {
         const input = oldStylesBox.querySelector('input');
@@ -73,6 +69,10 @@ function setupStylez() {
             });
         }
     }
+
+    // If Gradio finishes rendering a bit later, hide the tab button again.
+    setTimeout(hideStylezTabButton, 500);
+    setTimeout(hideStylezTabButton, 1500);
 }
 
 function hideStylezTabButton() {
@@ -130,7 +130,7 @@ function getENActiveTab() {
     } else {
         activetab = "txt2img";
     }
-    return (activetab);
+    return activetab;
 }
 
 function tabCheck(mutationsList, observer) {
@@ -207,8 +207,8 @@ function applyStyle(prompt, negative, origin) {
     const applyStylePrompt = gradioApp().querySelector('#styles_apply_prompt > label > input');
     const applyStyleNeg = gradioApp().querySelector('#styles_apply_neg > label > input');
 
-    orgPrompt = promptPos ? promptPos.value : "";
-    orgNegative = promptNeg ? promptNeg.value : "";
+    orgPrompt = promptPos ? promptPos.value : '';
+    orgNegative = promptNeg ? promptNeg.value : '';
 
     if (origin == "Stylez") {
         prompt = removeFirstAndLastCharacter(prompt);
@@ -298,11 +298,10 @@ function hoverPreviewStyle(prompt, negative, origin) {
     const enablePreview = enablePreviewChk ? enablePreviewChk.checked : false;
 
     if (enablePreview === true) {
-        const previewbox = gradioApp().getElementById("stylezPreviewBoxid");
+        previewbox = gradioApp().getElementById("stylezPreviewBoxid");
         if (!previewbox) return;
 
         previewbox.style.display = "block";
-
         if (origin == "Stylez") {
             prompt = removeFirstAndLastCharacter(prompt);
             negative = removeFirstAndLastCharacter(negative);
@@ -310,26 +309,23 @@ function hoverPreviewStyle(prompt, negative, origin) {
             prompt = decodeURIComponent(prompt).replaceAll(/%27/g, "'");
             negative = decodeURIComponent(negative).replaceAll(/%27/g, "'");
         }
-
         if (prompt == "") {
             prompt = "NULL";
         }
         if (negative == "") {
             negative = "NULL";
         }
-
-        const pos = gradioApp().getElementById("stylezPreviewPositive");
-        const neg = gradioApp().getElementById("stylezPreviewNegative");
+        pos = gradioApp().getElementById("stylezPreviewPositive");
+        neg = gradioApp().getElementById("stylezPreviewNegative");
         if (pos) pos.textContent = "Prompt: " + prompt;
         if (neg) neg.textContent = "Negative: " + negative;
     }
 }
 
 function hoverPreviewStyleOut() {
-    const previewbox = gradioApp().getElementById("stylezPreviewBoxid");
-    const pos = gradioApp().getElementById("stylezPreviewPositive");
-    const neg = gradioApp().getElementById("stylezPreviewNegative");
-
+    previewbox = gradioApp().getElementById("stylezPreviewBoxid");
+    pos = gradioApp().getElementById("stylezPreviewPositive");
+    neg = gradioApp().getElementById("stylezPreviewNegative");
     if (pos) pos.textContent = "Prompt: ";
     if (neg) neg.textContent = "Negative: ";
     if (previewbox) previewbox.style.display = "none";
@@ -384,7 +380,6 @@ function cardSizeChange(value) {
 function filterSearch(cat, search) {
     let searchString = (search || "").toLowerCase();
     const styleCards = gradioApp().querySelectorAll('.style_card');
-
     if (searchString == "") {
         if (cat == "All") {
             styleCards.forEach(card => {
@@ -511,7 +506,6 @@ function grabLastGeneratedimage() {
             imageSrc = imageSrc.replace(/.*file=/, '');
             imageSrc = imageSrc.split('?')[0];
             imageSrc = decodeURIComponent(imageSrc);
-
             const imgUrlHolderElement = gradioApp().querySelector('#style_img_url_txt > label > textarea');
             applyValues(imgUrlHolderElement, imageSrc);
         }
@@ -521,7 +515,6 @@ function grabLastGeneratedimage() {
 function grabCurrentSettings() {
     const editorPrompt = gradioApp().querySelector('#style_prompt_txt > label > textarea');
     applyValues(editorPrompt, promptPos ? promptPos.value : "");
-
     const editorPromptNeggative = gradioApp().querySelector('#style_negative_txt > label > textarea');
     applyValues(editorPromptNeggative, promptNeg ? promptNeg.value : "");
 }
@@ -562,8 +555,6 @@ function addFavourite(folder, filename, element) {
 
 function addQuicksave() {
     const ulElement = gradioApp().getElementById('styles_quicksave_list');
-    if (!ulElement) return;
-
     var liElement = document.createElement('li');
     var deleteButton = document.createElement('button');
     var innerButton = document.createElement('button');
@@ -573,6 +564,7 @@ function addQuicksave() {
     let negprompt = "";
 
     if (promptPos && (promptPos.value !== "" || (promptNeg && promptNeg.value !== ""))) {
+
         if (promptPos.value == "") {
             promptParagraph.disabled = true;
             promptParagraph.textContent = "EMPTY";
@@ -582,7 +574,6 @@ function addQuicksave() {
             promptParagraph.textContent = promptPos.value;
             prompt = encodeURIComponent(promptPos.value);
         }
-
         if (!promptNeg || promptNeg.value == "") {
             negParagraph.disabled = true;
             negParagraph.textContent = "EMPTY";
@@ -592,14 +583,12 @@ function addQuicksave() {
             negParagraph.textContent = promptNeg.value;
             negprompt = encodeURIComponent(promptNeg.value);
         }
-
         liElement.className = 'styles_quicksave';
         deleteButton.className = 'styles_quicksave_del';
         deleteButton.textContent = '❌';
         deleteButton.onclick = function () {
             deletequicksave(this);
         };
-
         promptParagraph.onclick = function () {
             applyQuickSave("pos", this.textContent);
         };
@@ -623,16 +612,14 @@ function addQuicksave() {
             hoverPreviewStyleOut();
         };
         negParagraph.className = 'styles_quicksave_neg styles_quicksave_btn';
-
         innerButton.className = 'styles_quicksave_apply';
         innerButton.appendChild(promptParagraph);
         innerButton.appendChild(negParagraph);
         liElement.appendChild(deleteButton);
         liElement.appendChild(innerButton);
-        ulElement.appendChild(liElement);
+        if (ulElement) ulElement.appendChild(liElement);
     }
 }
-
 function applyQuickSave(box, prompt) {
     tabname = getENActiveTab();
     if (box == "pos") {
@@ -653,7 +640,6 @@ function deletequicksave(elem) {
 function clearquicklist() {
     const list = gradioApp().getElementById("styles_quicksave_list");
     if (!list) return;
-
     while (list.firstChild) {
         list.removeChild(list.firstChild);
     }
