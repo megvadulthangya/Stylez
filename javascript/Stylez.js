@@ -9,14 +9,19 @@ let promptPos = '';
 function setupStylez() {
     const app = gradioApp();
 
+    // avoid duplicate injection on reload
+    if (app.getElementById("t2i_stylez_btn") || app.getElementById("i2i_stylez_btn")) {
+        hideStylezTabButton();
+        return;
+    }
+
     // create new button (txt2img)
     const t2i_StyleBtn = document.createElement("button");
     t2i_StyleBtn.setAttribute("class", "lg secondary gradio-button tool svelte-cmf5ev");
     t2i_StyleBtn.setAttribute("id", "t2i_stylez_btn");
     t2i_StyleBtn.setAttribute("type", "button");
-    t2i_StyleBtn.setAttribute("onClick", "showHideStylez()");
-    t2i_StyleBtn.addEventListener("click", showHideStylez);
     t2i_StyleBtn.innerText = `🎨`;
+    t2i_StyleBtn.addEventListener("click", showHideStylez);
 
     const txt2img_tools = app.getElementById("txt2img_clear_prompt");
     if (txt2img_tools && txt2img_tools.parentNode) {
@@ -28,9 +33,8 @@ function setupStylez() {
     i2i_StyleBtn.setAttribute("class", "lg secondary gradio-button tool svelte-cmf5ev");
     i2i_StyleBtn.setAttribute("id", "i2i_stylez_btn");
     i2i_StyleBtn.setAttribute("type", "button");
-    i2i_StyleBtn.setAttribute("onClick", "showHideStylez()");
-    i2i_StyleBtn.addEventListener("click", showHideStylez);
     i2i_StyleBtn.innerText = `🎨`;
+    i2i_StyleBtn.addEventListener("click", showHideStylez);
 
     const img2img_tools = app.getElementById("img2img_clear_prompt");
     if (img2img_tools && img2img_tools.parentNode) {
@@ -48,16 +52,15 @@ function setupStylez() {
     }
 
     const stylezContainer = app.querySelector("#Stylez");
-    console.log(stylezContainer);
-
-    // IMPORTANT:
-    // Keep the original behavior: move the Stylez container under the main tabs container.
-    // The visible tab button is hidden separately.
     const tabs = app.getElementById("tabs");
+
+    // Keep original behavior: place the Stylez container under the main tabs container
+    // so the extension UI can function as the original author intended.
     if (stylezContainer && tabs && stylezContainer.parentNode !== tabs) {
         tabs.appendChild(stylezContainer);
     }
 
+    // Hide the actual Gradio tab button created for the tab
     hideStylezTabButton();
 
     const oldStylesBox = app.querySelector('#hide_default_styles');
@@ -70,13 +73,30 @@ function setupStylez() {
         }
     }
 
-    // If Gradio finishes rendering a bit later, hide the tab button again.
+    // Repeat once after Gradio finishes late rendering
     setTimeout(hideStylezTabButton, 500);
     setTimeout(hideStylezTabButton, 1500);
+
+    // Ensure Stylez starts hidden
+    if (stylezContainer) {
+        stylezContainer.style.display = "none";
+    }
+
+    if (typeof setupcivitapi === "function") {
+        setupcivitapi();
+    }
 }
 
 function hideStylezTabButton() {
     const app = gradioApp();
+    const tabButton = app.getElementById("Stylez-button");
+
+    if (tabButton) {
+        tabButton.style.display = "none";
+        tabButton.setAttribute("aria-hidden", "true");
+        tabButton.tabIndex = -1;
+    }
+
     const tabNav = app.querySelector(".tab-nav");
     if (!tabNav) return;
 
@@ -107,12 +127,25 @@ function hideOldStyles(bool) {
 }
 
 function showHideStylez() {
-    const stylez = gradioApp().getElementById("Stylez");
+    const app = gradioApp();
+    const stylez = app.getElementById("Stylez");
+    const stylezTabBtn = app.getElementById("Stylez-button");
+
     if (!stylez) return;
 
     const computedStyle = window.getComputedStyle(stylez);
-    if (computedStyle.getPropertyValue("display") === "none" || computedStyle.getPropertyValue("visibility") === "hidden") {
+    const isHidden =
+        computedStyle.getPropertyValue("display") === "none" ||
+        computedStyle.getPropertyValue("visibility") === "hidden";
+
+    if (isHidden) {
+        // Let Gradio activate the tab properly, then make sure the container is visible
+        if (stylezTabBtn) {
+            stylezTabBtn.click();
+        }
         stylez.style.display = "block";
+        stylez.style.visibility = "visible";
+        stylez.style.pointerEvents = "auto";
     } else {
         stylez.style.display = "none";
     }
@@ -225,7 +258,6 @@ function applyStyle(prompt, negative, origin) {
                 orgPrompt = orgPrompt.replace(/^\s+/, "");
                 orgPrompt = orgPrompt.replace(/^,+/g, "");
                 orgPrompt = orgPrompt.replace(/^\s+/, "");
-
                 if (applyStylePrompt && applyStylePrompt.checked === true) {
                     applyValues(promptPos, orgPrompt);
                 }
@@ -241,7 +273,6 @@ function applyStyle(prompt, negative, origin) {
                     orgPrompt = orgPrompt.replace(/^\s+/, "");
                     orgPrompt = orgPrompt.replace(/^,+/g, "");
                     orgPrompt = orgPrompt.replace(/^\s+/, "");
-
                     if (applyStylePrompt && applyStylePrompt.checked === true) {
                         applyValues(promptPos, orgPrompt);
                     }
@@ -259,7 +290,6 @@ function applyStyle(prompt, negative, origin) {
                 orgNegative = orgNegative.replace(/^\s+/, "");
                 orgNegative = orgNegative.replace(/^,+/g, "");
                 orgNegative = orgNegative.replace(/^\s+/, "");
-
                 if (applyStyleNeg && applyStyleNeg.checked === true) {
                     applyValues(promptNeg, orgNegative);
                 }
@@ -302,6 +332,7 @@ function hoverPreviewStyle(prompt, negative, origin) {
         if (!previewbox) return;
 
         previewbox.style.display = "block";
+
         if (origin == "Stylez") {
             prompt = removeFirstAndLastCharacter(prompt);
             negative = removeFirstAndLastCharacter(negative);
@@ -309,12 +340,14 @@ function hoverPreviewStyle(prompt, negative, origin) {
             prompt = decodeURIComponent(prompt).replaceAll(/%27/g, "'");
             negative = decodeURIComponent(negative).replaceAll(/%27/g, "'");
         }
+
         if (prompt == "") {
             prompt = "NULL";
         }
         if (negative == "") {
             negative = "NULL";
         }
+
         pos = gradioApp().getElementById("stylezPreviewPositive");
         neg = gradioApp().getElementById("stylezPreviewNegative");
         if (pos) pos.textContent = "Prompt: " + prompt;
@@ -515,6 +548,7 @@ function grabLastGeneratedimage() {
 function grabCurrentSettings() {
     const editorPrompt = gradioApp().querySelector('#style_prompt_txt > label > textarea');
     applyValues(editorPrompt, promptPos ? promptPos.value : "");
+
     const editorPromptNeggative = gradioApp().querySelector('#style_negative_txt > label > textarea');
     applyValues(editorPromptNeggative, promptNeg ? promptNeg.value : "");
 }
@@ -555,6 +589,8 @@ function addFavourite(folder, filename, element) {
 
 function addQuicksave() {
     const ulElement = gradioApp().getElementById('styles_quicksave_list');
+    if (!ulElement) return;
+
     var liElement = document.createElement('li');
     var deleteButton = document.createElement('button');
     var innerButton = document.createElement('button');
@@ -564,7 +600,6 @@ function addQuicksave() {
     let negprompt = "";
 
     if (promptPos && (promptPos.value !== "" || (promptNeg && promptNeg.value !== ""))) {
-
         if (promptPos.value == "") {
             promptParagraph.disabled = true;
             promptParagraph.textContent = "EMPTY";
@@ -574,6 +609,7 @@ function addQuicksave() {
             promptParagraph.textContent = promptPos.value;
             prompt = encodeURIComponent(promptPos.value);
         }
+
         if (!promptNeg || promptNeg.value == "") {
             negParagraph.disabled = true;
             negParagraph.textContent = "EMPTY";
@@ -583,12 +619,14 @@ function addQuicksave() {
             negParagraph.textContent = promptNeg.value;
             negprompt = encodeURIComponent(promptNeg.value);
         }
+
         liElement.className = 'styles_quicksave';
         deleteButton.className = 'styles_quicksave_del';
         deleteButton.textContent = '❌';
         deleteButton.onclick = function () {
             deletequicksave(this);
         };
+
         promptParagraph.onclick = function () {
             applyQuickSave("pos", this.textContent);
         };
@@ -612,14 +650,16 @@ function addQuicksave() {
             hoverPreviewStyleOut();
         };
         negParagraph.className = 'styles_quicksave_neg styles_quicksave_btn';
+
         innerButton.className = 'styles_quicksave_apply';
         innerButton.appendChild(promptParagraph);
         innerButton.appendChild(negParagraph);
         liElement.appendChild(deleteButton);
         liElement.appendChild(innerButton);
-        if (ulElement) ulElement.appendChild(liElement);
+        ulElement.appendChild(liElement);
     }
 }
+
 function applyQuickSave(box, prompt) {
     tabname = getENActiveTab();
     if (box == "pos") {
@@ -656,3 +696,22 @@ function stylesgrabprompt() {
     promptPos = gradioApp().querySelector(`#${tabname}_prompt > label > textarea`);
     return promptPos ? promptPos.value : "";
 }
+
+// Expose functions for inline handlers if needed
+window.showHideStylez = showHideStylez;
+window.hideOldStyles = hideOldStyles;
+window.cardSizeChange = cardSizeChange;
+window.filterSearch = filterSearch;
+window.addQuicksave = addQuicksave;
+window.clearquicklist = clearquicklist;
+window.sendToPromtbox = sendToPromtbox;
+window.stylesgrabprompt = stylesgrabprompt;
+window.addFavourite = addFavourite;
+window.applyStyle = applyStyle;
+window.hoverPreviewStyle = hoverPreviewStyle;
+window.hoverPreviewStyleOut = hoverPreviewStyleOut;
+window.editStyle = editStyle;
+window.grabCurrentSettings = grabCurrentSettings;
+window.grabLastGeneratedimage = grabLastGeneratedimage;
+window.saveRefresh = saveRefresh;
+window.deleteRefresh = deleteRefresh;
